@@ -58,3 +58,62 @@ toenail_mod_lag_1b <- gee(y ~ treatment + month + y_1, corstr = "independence", 
 round(summary(toenail_mod_lag_1b)$coeff, 2)
 ```
 
+## Part 2
+Repeat the model using a second order transition model. Is there a justification for a second order transition model?
+
+# Do we need both lag 1 and lag 2?
+
+```{r}
+### add response at lag 2 
+toenail_tab_dat[, y_2 := shift(y, n = 2, type = "lag", fill = NA), by = "id"]
+
+### transition probabilities
+tab2 <- table(toenail_tab_dat$y, toenail_tab_dat$y_2)
+round(prop.table(tab2, margin = 1), 2)
+
+### model w/ interaction term
+
+toenail_mod_lag_2 <- gee(y ~ treatment*month + treatment*y_2 + treatment*y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
+round(summary(toenail_mod_lag_2)$coeff,2)
+```
+
+## Part 3
+Provide Interpretations for the parameters in your model.
+
+## Part 4
+How are the interpretations different from the models in HW2 and HW3.
+
+# Question 2
+
+```{r}
+### importing given code
+
+toenail <- fread("/Users/SabrinaLin/Documents/Fall_2020_Longitudinal/HW2/toenail.txt")
+colnames(toenail) <- c("id","response","treatment","month","visit")
+toenail2 <- tidyr::complete(toenail, id, visit) %>%
+              tidyr::fill(treatment)
+toenail2 <- as.data.table(toenail2)
+```
+
+## Part 1
+Perform a complete case analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
+
+```{r}
+# complete case analysis 
+count <- toenail2[,j = list(n=sum(!is.na(response))), by = "id"]
+table(count$n)
+count <- count[n==7]
+toenail_1 <- toenail2[id %in% count$id]
+table(toenail_1$response,useNA = "always")
+table(toenail_1$visit,toenail_1$response, useNA = "always")
+gee1 <- geeglm(response ~ treatment + month, id = id, data = toenail2, family = binomial(link = "logit"), corstr = "unstructured")
+summary(gee1)
+```
+
+## Part 2
+Perform an available case analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
+
+```{r}
+
+```
+
