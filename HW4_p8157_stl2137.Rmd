@@ -106,7 +106,7 @@ count <- count[n==7]
 toenail_1 <- toenail2[id %in% count$id]
 table(toenail_1$response,useNA = "always")
 table(toenail_1$visit,toenail_1$response, useNA = "always")
-gee1 <- geeglm(response ~ treatment + month, id = id, data = toenail2, family = binomial(link = "logit"), corstr = "unstructured")
+gee1 <- geeglm(response ~ treatment + month, id = id, data = toenail_1, family = binomial(link = "logit"), corstr = "unstructured")
 summary(gee1)
 ```
 
@@ -114,6 +114,15 @@ summary(gee1)
 Perform an available case analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
 
 ```{r}
+toenail_2 <- toenail2
+table(toenail_2$response, useNA = "always")
+table(toenail_2$visit, toenail_2$response, useNA = "always")
+gee2 <- geeglm(response ~ treatment + month, id = id, data = toenail2, family = binomial(link = "logit"), corstr = "unstructured")
 
+obesity2 <- obesity
+table(obesity2$status,useNA = "always")
+table(obesity2$occasion,obesity2$status,useNA = "always")
+gee2 <- geeglm(status ~ gender + (current_age + I(current_age^2)) , id = id, data = obesity2, family = binomial(link = "logit"), corstr = "unstructured")
+summary(gee2)
 ```
 
