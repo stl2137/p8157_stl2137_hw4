@@ -1,0 +1,60 @@
+---
+title: "P8157 HW 4"
+author: "Sabrina Lin stl2137"
+date: "11/21/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(data.table)
+library(gee)
+library(geepack)
+```
+
+# Question 1
+
+```{r}
+### Import Data
+
+toenail_dat <- read.delim("/Users/SabrinaLin/Documents/Fall_2020_Longitudinal/HW2/toenail.txt", header = TRUE, sep = "", col.names = c("ID", "Y", "Treatment", "Month", "Visit")) %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    treatment = as.factor(treatment), 
+    visit = as.factor(visit)
+  )
+
+#making into data.table
+
+toenail_tab_dat <- data.table(toenail_dat)
+```
+
+## Part 1 
+Consider a first order transition model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use month as the time variable.
+
+```{r}
+### add response at lag 1
+toenail_tab_dat[, y_1 := shift(y, n = 1, type = "lag", fill = NA), by = "id"]
+
+### transition probabilities
+tab1 <- table(toenail_tab_dat$y, toenail_tab_dat$y_1)
+round(prop.table(tab1,margin = 1),2)
+
+### model w/ interaction term
+
+toenail_mod_lag_1 <- gee(y ~ treatment*month + treatment*y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
+round(summary(toenail_mod_lag_1)$coeff,2)
+```
+
+* Since the interaction term between treatment and month is insignificant with a naive z-score of -0.91 and a robust z-score of -0.81, it will be taken out of the model. 
+
+* Since the interaction term between treatment and lag 1 (represented by `y_1`) is insignificant with a naive z-score of 1.33 and a robust z-score of 1.40, it will be taken out of the model. 
+
+```{r}
+### Model w/o interaction term
+
+toenail_mod_lag_1b <- gee(y ~ treatment + month + y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
+round(summary(toenail_mod_lag_1b)$coeff, 2)
+```
+
