@@ -68,8 +68,6 @@ round(summary(toenail_mod_lag_1b)$coeff, 2)
 ## Part 2
 Repeat the model using a second order transition model. Is there a justification for a second order transition model?
 
-# Do we need both lag 1 and lag 2?
-
 ```{r}
 ### add response at lag 2 
 toenail_tab_dat[, y_2 := shift(y, n = 2, type = "lag", fill = NA), by = "id"]
@@ -80,11 +78,11 @@ round(prop.table(tab2, margin = 1), 2)
 
 ### model w/ interaction term
 
-toenail_mod_lag_2 <- gee(y ~ treatment + month + treatment*y_2 + treatment*y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
+toenail_mod_lag_2 <- gee(y ~ treatment + month + y_1 + treatment*y_2, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
 round(summary(toenail_mod_lag_2)$coeff,2)
-
-
 ```
+
+* It looks like you do not need the second lag, as the naive z-score and the robust z-score for lag 2 are respectively 0.49 and 0.55. Thus the model from here on now
 
 ## Part 3
 Provide Interpretations for the parameters in your model.
@@ -149,11 +147,9 @@ summary(gee3)
 
 Perform an multiple imputation based analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
 
-# imputation not working
-
 ```{r}
 # MI
-toenail_4 <- toenail2
+toenail_4 <- toenail2[,-5]
 pred <- make.predictorMatrix(toenail_4)
 pred
 pred["response", "id"] <- -2
@@ -168,11 +164,7 @@ table(mice::complete(imp)$response, useNA = "always")
 ```{r}
 ### GEE
 implist <- mids2mitml.list(imp)
-gee4 <- with(implist, geeglm(status ~ gender + (current_age + I(current_age^2)), id=id,family = binomial, corstr = "unstructured"))
-testEstimates(gee4)
-
-implist <- mids2mitml.list(imp)
-gee4 <- with(implist, geeglm(response ~ treatment + month, id=id,family = binomial, corstr = "unstructured"))
+gee4 <- with(implist, geeglm(response ~ treatment + visit, id=id,family = binomial, corstr = "unstructured"))
 testEstimates(gee4)
 ```
 
@@ -181,9 +173,9 @@ testEstimates(gee4)
 ```{r}
 lme1 <- mice::complete(imp, "all") %>% 
   purrr::map(lme4::glmer,
-             formula = response ~ treatment + month + (1 | id),
+             formula = response ~ treatment + visit + (1 | id),
              family = binomial) %>% 
-  pool() %>% 
+  pool()
   summary()
 ```
 
