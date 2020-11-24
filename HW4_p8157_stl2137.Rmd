@@ -11,6 +11,13 @@ library(tidyverse)
 library(data.table)
 library(gee)
 library(geepack)
+library(lme4)
+library(doBy)
+library(tidyr)
+library(mice)
+library(purrr)
+library(mitml)
+library(CRTgeeDR)
 ```
 
 # Question 1
@@ -73,8 +80,10 @@ round(prop.table(tab2, margin = 1), 2)
 
 ### model w/ interaction term
 
-toenail_mod_lag_2 <- gee(y ~ treatment*month + treatment*y_2 + treatment*y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
+toenail_mod_lag_2 <- gee(y ~ treatment + month + treatment*y_2 + treatment*y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
 round(summary(toenail_mod_lag_2)$coeff,2)
+
+
 ```
 
 ## Part 3
@@ -91,7 +100,10 @@ How are the interpretations different from the models in HW2 and HW3.
 toenail <- fread("/Users/SabrinaLin/Documents/Fall_2020_Longitudinal/HW2/toenail.txt")
 colnames(toenail) <- c("id","response","treatment","month","visit")
 toenail2 <- tidyr::complete(toenail, id, visit) %>%
-              tidyr::fill(treatment)
+              tidyr::fill(treatment) %>% 
+  mutate(
+    visit = as.factor(visit)
+  )
 toenail2 <- as.data.table(toenail2)
 ```
 
@@ -106,7 +118,7 @@ count <- count[n==7]
 toenail_1 <- toenail2[id %in% count$id]
 table(toenail_1$response,useNA = "always")
 table(toenail_1$visit,toenail_1$response, useNA = "always")
-gee1 <- geeglm(response ~ treatment + month, id = id, data = toenail_1, family = binomial(link = "logit"), corstr = "unstructured")
+gee1 <- geeglm(response ~ treatment + visit, id = id, data = toenail_1, family = binomial(link = "logit"), corstr = "unstructured")
 summary(gee1)
 ```
 
@@ -117,12 +129,61 @@ Perform an available case analysis considering a GEE model for the log odds of m
 toenail_2 <- toenail2
 table(toenail_2$response, useNA = "always")
 table(toenail_2$visit, toenail_2$response, useNA = "always")
-gee2 <- geeglm(response ~ treatment + month, id = id, data = toenail2, family = binomial(link = "logit"), corstr = "unstructured")
-
-obesity2 <- obesity
-table(obesity2$status,useNA = "always")
-table(obesity2$occasion,obesity2$status,useNA = "always")
-gee2 <- geeglm(status ~ gender + (current_age + I(current_age^2)) , id = id, data = obesity2, family = binomial(link = "logit"), corstr = "unstructured")
+gee2 <- geeglm(response ~ treatment + visit, id = id, data = toenail_2, family = binomial(link = "logit"), corstr = "unstructured")
 summary(gee2)
+```
+
+## Part 3
+Perform an LOCF analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
+
+```{r}
+toenail_3 <- lapply(unique(toenail2$id), function(z){tidyr::fill(toenail2[id == z], response)})
+toenail_3 <- rbindlist((toenail_3))
+table(toenail_3$visit, toenail_3$response, useNA = "always")
+
+gee3 <- geeglm(response ~ treatment + visit, id = id, data = toenail_3, family = binomial(link = "logit"), corstr = "unstructured")
+summary(gee3)
+```
+
+## Part 4
+
+Perform an multiple imputation based analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
+
+# imputation not working
+
+```{r}
+# MI
+toenail_4 <- toenail2
+pred <- make.predictorMatrix(toenail_4)
+pred
+pred["response", "id"] <- -2
+pred
+pred <- pred["response",,drop = FALSE]
+pred
+toenail_4$id <- as.integer(toenail_4$id)
+imp <- mice(toenail_4, method = "2l.bin", pred = pred, seed = 1234, maxit = 1, m = 5, print = FALSE, blocks = list(c("response")))
+table(mice::complete(imp)$response, useNA = "always")
+```
+
+```{r}
+### GEE
+implist <- mids2mitml.list(imp)
+gee4 <- with(implist, geeglm(status ~ gender + (current_age + I(current_age^2)), id=id,family = binomial, corstr = "unstructured"))
+testEstimates(gee4)
+
+implist <- mids2mitml.list(imp)
+gee4 <- with(implist, geeglm(response ~ treatment + month, id=id,family = binomial, corstr = "unstructured"))
+testEstimates(gee4)
+```
+
+## Part 5
+
+```{r}
+lme1 <- mice::complete(imp, "all") %>% 
+  purrr::map(lme4::glmer,
+             formula = response ~ treatment + month + (1 | id),
+             family = binomial) %>% 
+  pool() %>% 
+  summary()
 ```
 
