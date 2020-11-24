@@ -134,6 +134,10 @@ gee1 <- geeglm(response ~ treatment + visit, id = id, data = toenail_1, family =
 summary(gee1)
 ```
 
+* Treatment and visit are both significant, with p-values of 3.6e-12 and 4.8e-09 respectively. 
+
+* The beta estimates for the intercept, treatment, and visit are unreasonably large. 
+
 ## Part 2
 Perform an available case analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
 
@@ -144,6 +148,10 @@ table(toenail_2$visit, toenail_2$response, useNA = "always")
 gee2 <- geeglm(response ~ treatment + visit, id = id, data = toenail_2, family = binomial(link = "logit"), corstr = "unstructured")
 summary(gee2)
 ```
+
+* Treatment is no longer significant, as the p-value is now 0.26. Visit remains significant with a p-value of <2e-16. 
+
+* The beta estimates for the intercept, treatment, and visit are unreasonably large. 
 
 ## Part 3
 Perform an LOCF analysis considering a GEE model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
@@ -156,6 +164,10 @@ table(toenail_3$visit, toenail_3$response, useNA = "always")
 gee3 <- geeglm(response ~ treatment + visit, id = id, data = toenail_3, family = binomial(link = "logit"), corstr = "unstructured")
 summary(gee3)
 ```
+
+* Treatment is not significant, as the p-value is now 0.5. Visit remains significant with a p-value of <2e-16.
+
+* The beta estimates are now much more reasonable compared to the prior 2 models utilizing complete and available cases. 
 
 ## Part 4
 
@@ -182,6 +194,10 @@ gee4 <- with(implist, geeglm(response ~ treatment + visit, id=id,family = binomi
 testEstimates(gee4)
 ```
 
+* After imputation, the intercept, treatment, and visit in the model are not significiant with respective p-values of 0.726, 0.706, and 0.710. 
+
+* The beta estimates are back to being unreasonably large. 
+
 ## Part 5
 Perform an multiple imputation based analysis considering a mixed effects model for the log odds of moderate or severe onycholysis. Set up a suitable model assuming linear trends. Use visit as the time variable.
 
@@ -197,3 +213,6 @@ lme1 <- mice::complete(imp, "all") %>%
 summary(lme1)
 ```
 
+* The intercept and treatment are insignificant with respective p-values of 0.422 and 0.290, but visit is significant with a p-value of 0.000. 
+
+* The beta estimates are more reasonable in this mixed effects model compared to the GEE. 
