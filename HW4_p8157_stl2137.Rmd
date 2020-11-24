@@ -63,7 +63,8 @@ round(summary(toenail_mod_lag_1)$coeff,2)
 ### Model w/o interaction term
 
 toenail_mod_lag_1b <- gee(y ~ treatment + month + y_1, corstr = "independence", family = binomial("logit"), id = id, data = toenail_tab_dat)
-round(summary(toenail_mod_lag_1b)$coeff, 2)
+toenail_mod_summary <- round(summary(toenail_mod_lag_1b)$coeff, 2)
+toenail_mod_summary
 ```
 
 ## Part 2
@@ -83,13 +84,27 @@ toenail_mod_lag_2 <- gee(y ~ treatment + month + y_1 + treatment*y_2, corstr = "
 round(summary(toenail_mod_lag_2)$coeff,2)
 ```
 
-* It looks like you do not need the second lag, as the naive z-score and the robust z-score for lag 2 are respectively 0.49 and 0.55. Thus the model from here on now
+* It looks like you do not need the second order transition model, as the naive z-score and the robust z-score for lag 2 are respectively 0.49 and 0.55. Thus the model from here on now will only include the first lag. 
 
 ## Part 3
 Provide Interpretations for the parameters in your model.
 
+```{r}
+toenail_mod_summary
+```
+
+* `r toenail_mod_summary[1,1]` is the log odds of moderate or severe onycholysis for those who did not receive treatment and did not have moderate or severe onycholysis in the previous month. 
+
+* `r toenail_mod_summary[2,1]` is the log odds ratio of moderate or severe onycholysis comparing those with or without treatment who had an identical onycholysis status in the previous month. 
+
+* `r toenail_mod_summary[3,1]` is the log odds ratio of moderate or severe onycholysis for every one month increase for those with an identical onycholysis status and treatment. 
+
+* `r toenail_mod_summary[4,1]` is the log odds ratio of moderate or severe onycholysis comparing those with and without treatment in the previous month for those who have an identical onycholysis status. 
+
 ## Part 4
 How are the interpretations different from the models in HW2 and HW3.
+
+* The interpretations here are different from the models in HW2 and HW3 because the previous months are accounted for on the onycholysis status. 
 
 # Question 2
 
